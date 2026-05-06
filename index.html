@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>線上預約系統</title>
+    <title>線上預約系統 v2</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
       body {
@@ -56,6 +56,9 @@
     <div class="container">
       <h2>預約服務</h2>
       <form id="bookingForm">
+        <label>員工編號</label>
+        <input type="text" id="empId" required placeholder="請輸入員工編號" />
+
         <label>姓名</label>
         <input type="text" id="name" required placeholder="請輸入姓名" />
 
@@ -80,10 +83,9 @@
 
     <script>
       const GAS_URL =
-        "https://script.google.com/macros/s/AKfycbwLmsXMH0K2EIGqKrzfxACr2DBMPYXG_-8_Rzp8RPYBHs5I6KlAFjxI5h6FaHpuZHaA5A/exec"; // ⚠️請貼上第一步取得的 GAS 網址
-      const LIFF_ID = "22009985937-9ToPGhgv"; // ⚠️第三步取得後回來填寫
+        "https://script.google.com/macros/s/AKfycbySjiafUA-WNzH5tG2LkSRS9EttMz685j0S1U5rwUOjxMexH7UETzVku5GTU_NtxXSR8g/exec"; // ⚠️請填入你付費版新部署的 GAS 網址
+      const LIFF_ID = "2009985937-9ToPGhgv"; // ⚠️請填入你的 LIFF ID
 
-      // 初始化 LIFF
       async function initLIFF() {
         try {
           await liff.init({ liffId: LIFF_ID });
@@ -95,20 +97,19 @@
         }
       }
 
-      // 監聽表單送出事件
       document
         .getElementById("bookingForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
 
           const data = {
+            empId: document.getElementById("empId").value,
             name: document.getElementById("name").value,
             phone: document.getElementById("phone").value,
             date: document.getElementById("date").value,
             time: document.getElementById("time").value,
           };
 
-          // 發送資料到後端 GAS
           try {
             const response = await fetch(GAS_URL, {
               method: "POST",
@@ -117,21 +118,22 @@
             const result = await response.json();
 
             if (result.status === "success") {
-              alert("預約成功！");
-
-              // 讓機器人在聊天室自動發送一句話（提示使用者已完成）
+              alert("🎉 預約成功！");
               if (liff.isInClient()) {
                 liff
                   .sendMessages([
                     {
                       type: "text",
-                      text: `🎉 我已成功預約：\n日期：${data.date}\n時間：${data.time}`,
+                      text: `🎉 預約成功通知：\n員工編號：${data.empId}\n姓名：${data.name}\n時段：${data.date} ${data.time}`,
                     },
                   ])
                   .then(() => {
-                    liff.closeWindow(); // 關閉 LIFF 視窗
+                    liff.closeWindow();
                   });
               }
+            } else if (result.status === "conflict") {
+              // 重複預約時的提示
+              alert(result.message);
             } else {
               alert("預約失敗，請稍後再試");
             }
